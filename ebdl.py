@@ -1,9 +1,11 @@
 #!/usr/bin/python3
+
 import json
 import os
 import requests
 import pprint
 import argparse
+import wget 
 from coreapi import Client
 
 headers = {'accept': 'application/json'}
@@ -71,8 +73,7 @@ if __name__ == '__main__':
     jaspar_to_file(jaspar,options.tf)
     with open(f'./{options.tf}/bed_files.txt', 'a') as f:
         json.dump(results,f,ensure_ascii=False, indent=4)
-
-
-    
-    
+    os.chdir(options.tf)
+    for i in results:
+        wget.download(i['download_url'])
     
