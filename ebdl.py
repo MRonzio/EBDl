@@ -1,9 +1,8 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import json
 import os
 import requests
-import pprint
 import argparse
 import wget 
 from coreapi import Client
