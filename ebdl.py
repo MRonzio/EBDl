@@ -40,7 +40,7 @@ def bed_files(experiments):
         exp_r = requests.get(url, headers=headers)
         test = exp_r.json()
         for i,item in enumerate(test['files']):
-            if test['files'][i]['output_type']=="optimal IDR thresholded peaks" and test['files'][i]['file_format']=="bed":
+            if (test['files'][i]['output_type']=="optimal IDR thresholded peaks" or test['files'][i]['output_type']=="IDR thresholded peaks") and test['files'][i]['file_format']=="bed":
                dl = item['href']
                accession = item['accession']
                download_url = f'https://www.encodeproject.org{dl}'
