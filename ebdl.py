@@ -23,7 +23,12 @@ def cli_options():
 
 def search_experiments(organism, tf, cl): 
     api_dict = { 'organism': 'replicates.library.biosample.donor.organism.scientific_name','tf': 'target.label','cell_line':'biosample_ontology.term_name'}
-    r = requests.get(f"https://www.encodeproject.org/search/?type=Experiment&{api_dict['organism']}={organism}&assay_title=TF+ChIP-seq&status=released&{api_dict['tf']}={tf}&biosample_ontology.classification=cell+line&{api_dict['cell_line']}={cl}",headers=headers)
+
+    r = requests.get(f"https://www.encodeproject.org/search/?type=Experiment"\
+        f"&{api_dict['organism']}={organism}&assay_title=TF+ChIP-seq&status=released"\
+        f"&{api_dict['tf']}={tf}&biosample_ontology.classification=cell+line"\
+        f"&{api_dict['cell_line']}={cl}",headers=headers)
+
     rj = r.json()
     if rj['notification'] == "Success":
        return rj
@@ -40,7 +45,11 @@ def bed_files(experiments):
         exp_r = requests.get(url, headers=headers)
         test = exp_r.json()
         for i,item in enumerate(test['files']):
-            if (test['files'][i]['output_type']=="optimal IDR thresholded peaks" or test['files'][i]['output_type']=="IDR thresholded peaks") and test['files'][i]['file_format']=="bed":
+
+            if (test['files'][i]['output_type']=="optimal IDR thresholded peaks"\
+            or test['files'][i]['output_type']=="IDR thresholded peaks")\
+            and test['files'][i]['file_format']=="bed":
+
                dl = item['href']
                accession = item['accession']
                download_url = f'https://www.encodeproject.org{dl}'
