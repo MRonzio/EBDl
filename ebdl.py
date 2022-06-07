@@ -6,6 +6,7 @@ import requests
 import argparse
 import wget 
 from coreapi import Client
+from multiprocessing.pool import ThreadPool
 
 headers = {'accept': 'application/json'}
 client = Client()
@@ -17,6 +18,7 @@ def cli_options():
     parser.add_argument('-f', dest='tf', default='CTCF', help='transcription factor')
     parser.add_argument('-l', default='K562', dest='cl', help='Cell line')
     parser.add_argument('-g', default='vertebrates', dest='tg', help='taxonomic group')
+    parser.add_argument('-t', default=4 , dest='tp' , help='n threadpool')
     return parser.parse_args()
 
 
@@ -70,8 +72,12 @@ def jaspar_to_file(jaspar,dir):
         f = open(f'./{dir}/{matrix_id}.jaspar', 'a')
         f.write(f'>{jaspar[n]}')
         f.close()
+
         
-    
+def download(url):
+    wget.download(url)
+
+
 if __name__ == '__main__':
     options = cli_options()
     os.mkdir(options.tf)
@@ -82,6 +88,8 @@ if __name__ == '__main__':
     with open(f'./{options.tf}/bed_files.txt', 'a') as f:
         json.dump(results,f,ensure_ascii=False, indent=4)
     os.chdir(options.tf)
+    urls=[]
     for i in results:
-        wget.download(i['download_url'])
-    
+        urls.append(i['download_url'])
+    p = ThreadPool(int(options.tp)) 
+    p.map(download,urls)
