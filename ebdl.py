@@ -4,7 +4,8 @@ import json
 import os
 import requests
 import argparse
-import wget 
+import wget
+import sys 
 from coreapi import Client
 from multiprocessing.pool import ThreadPool
 
@@ -20,7 +21,7 @@ def cli_options():
     parser.add_argument('-f', '--factor', dest='exp', default='CTCF', help='target name')
     parser.add_argument('-l', '--cell-line',default='K562', dest='cl', help='cell line')
     parser.add_argument('-j', '--jaspar-download', default=False, dest='jd', action='store_true',
-                         help='boolean download jaspar (only for tfs)')
+                         required='Histone' not in sys.argv, help='boolean download jaspar (only for tfs)')
     parser.add_argument('-t', '--taxonomic-group', default='vertebrates', dest='tg', help='taxonomic group')
     parser.add_argument('-p', '--threads', default=4 , dest='tp' , help='n threadpool')
     return parser.parse_args()
@@ -40,6 +41,7 @@ def search_experiments(organism, exp_type, exp, cl, genome):
         f"&{api_dict['exp']}={exp}"\
         "&biosample_ontology.classification=cell+line"\
         "&perturbed=false"\
+       # "&limit=5"\
         f"&{api_dict['genome']}={genome}"\
         f"&{api_dict['cell_line']}={cl}",headers=headers)
 
@@ -59,18 +61,23 @@ def bed_files(experiments):
         expr_r = requests.get(url, headers=headers)
         test = expr_r.json()
         for i,item in enumerate(test['files']):
-
+            try:
+                test['files'][i]['preferred_default']=="True"
+                print("this is default!")
+            except KeyError:
+                print("no default available")
+                continue
             if (test['files'][i]['output_type']=="optimal IDR thresholded peaks"\
             or test['files'][i]['output_type']=="IDR thresholded peaks"\
             or test['files'][i]['output_type']=="pseudoreplicated peaks")\
             and test['files'][i]['file_format']=="bed":
 
-               dl = item['href']
-               accession = item['accession']
-               download_url = f'https://www.encodeproject.org{dl}'
-               url_info =  f'https://www.encodeproject.org/files/{accession}'
-               bed_file = {'url_info': url_info, 'download_url': download_url }
-               DownloadUrl_l.append(bed_file)
+                dl = item['href']
+                accession = item['accession']
+                download_url = f'https://www.encodeproject.org{dl}'
+                url_info =  f'https://www.encodeproject.org/files/{accession}'
+                bed_file = {'url_info': url_info, 'download_url': download_url }
+                DownloadUrl_l.append(bed_file)
     return DownloadUrl_l
 
 def search_jaspar(tf,tg):
@@ -106,9 +113,9 @@ if __name__ == '__main__':
                                      exp=options.exp,
                                      cl=options.cl,
                                      genome=options.gen)
-    createdir(options.exp)
     results = bed_files(experiments=experiments)
-    if options.exp_type=='TF' and options.jd==True:
+    createdir(options.exp)
+    if options.jd==True:
         jaspar = search_jaspar(tf=options.exp,tg=options.tg)
         jaspar_to_file(jaspar,options.exp)
     with open(f'./{options.exp}/bed_files.txt', 'a') as f:
