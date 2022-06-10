@@ -4,7 +4,8 @@ import json
 import os
 import requests
 import argparse
-import wget 
+import wget
+import sys 
 from coreapi import Client
 from multiprocessing.pool import ThreadPool
 
@@ -14,20 +15,34 @@ client = Client()
 # COMMAND LINE OPTIONS
 def cli_options():
     parser = argparse.ArgumentParser(description='EBDl encode bed downloader')
-    parser.add_argument('-o', dest='organism', default='Homo+sapiens', help='organism')
-    parser.add_argument('-f', dest='tf', default='CTCF', help='transcription factor')
-    parser.add_argument('-l', default='K562', dest='cl', help='Cell line')
-    parser.add_argument('-g', default='vertebrates', dest='tg', help='taxonomic group')
-    parser.add_argument('-t', default=4 , dest='tp' , help='n threadpool')
+    parser.add_argument('-o', '--organism', dest='organism', default='Homo+sapiens', help='organism')
+    parser.add_argument('-g', '--genome', dest='gen', default='*', help='genome such as hg19, GRCh38, mm10 etc...')
+    parser.add_argument('-e', '--exp-type', dest='exp_type', default='TF', help='experiment type: either "TF" or "Histone"')
+    parser.add_argument('-f', '--factor', dest='exp', default='CTCF', help='target name')
+    parser.add_argument('-l', '--cell-line',default='K562', dest='cl', help='cell line')
+    parser.add_argument('-j', '--jaspar-download', default=False, dest='jd', action='store_true',
+                         required='Histone' not in sys.argv, help='boolean download jaspar (only for tfs)')
+    parser.add_argument('-t', '--taxonomic-group', default='vertebrates', dest='tg', help='taxonomic group')
+    parser.add_argument('-p', '--threads', default=4 , dest='tp' , help='n threadpool')
     return parser.parse_args()
 
 
-def search_experiments(organism, tf, cl): 
-    api_dict = { 'organism': 'replicates.library.biosample.donor.organism.scientific_name','tf': 'target.label','cell_line':'biosample_ontology.term_name'}
+def search_experiments(organism, exp_type, exp, cl, genome): 
+    api_dict = {'organism': 'replicates.library.biosample.donor.organism.scientific_name',
+                'assay' : 'assay_title',
+                'exp': 'target.label',
+                'cell_line':'biosample_ontology.term_name',
+                'genome':'assembly'
+                }
 
     r = requests.get(f"https://www.encodeproject.org/search/?type=Experiment"\
-        f"&{api_dict['organism']}={organism}&assay_title=TF+ChIP-seq&status=released"\
-        f"&{api_dict['tf']}={tf}&biosample_ontology.classification=cell+line"\
+        f"&{api_dict['organism']}={organism}"\
+        f"&{api_dict['assay']}={exp_type}&status=released"\
+        f"&{api_dict['exp']}={exp}"\
+        "&biosample_ontology.classification=cell+line"\
+        "&perturbed=false"\
+       # "&limit=5"\
+        f"&{api_dict['genome']}={genome}"\
         f"&{api_dict['cell_line']}={cl}",headers=headers)
 
     rj = r.json()
@@ -41,22 +56,28 @@ def search_experiments(organism, tf, cl):
 def bed_files(experiments):
     DownloadUrl_l = [] 
     for x in experiments['@graph']:
-        exp = str((x['@id']))
-        url = f"https://www.encodeproject.org{exp}"
-        exp_r = requests.get(url, headers=headers)
-        test = exp_r.json()
+        expr = str((x['@id']))
+        url = f"https://www.encodeproject.org{expr}"
+        expr_r = requests.get(url, headers=headers)
+        test = expr_r.json()
         for i,item in enumerate(test['files']):
-
+            try:
+                test['files'][i]['preferred_default']=="True"
+                print("this is default!")
+            except KeyError:
+                print("no default available")
+                continue
             if (test['files'][i]['output_type']=="optimal IDR thresholded peaks"\
-            or test['files'][i]['output_type']=="IDR thresholded peaks")\
+            or test['files'][i]['output_type']=="IDR thresholded peaks"\
+            or test['files'][i]['output_type']=="pseudoreplicated peaks")\
             and test['files'][i]['file_format']=="bed":
 
-               dl = item['href']
-               accession = item['accession']
-               download_url = f'https://www.encodeproject.org{dl}'
-               url_info =  f'https://www.encodeproject.org/files/{accession}'
-               bed_file = {'url_info': url_info, 'download_url': download_url }
-               DownloadUrl_l.append(bed_file)
+                dl = item['href']
+                accession = item['accession']
+                download_url = f'https://www.encodeproject.org{dl}'
+                url_info =  f'https://www.encodeproject.org/files/{accession}'
+                bed_file = {'url_info': url_info, 'download_url': download_url }
+                DownloadUrl_l.append(bed_file)
     return DownloadUrl_l
 
 def search_jaspar(tf,tg):
@@ -77,17 +98,29 @@ def jaspar_to_file(jaspar,dir):
 def download(url):
     wget.download(url)
 
+def createdir(exp_name):
+    if os.path.exists(exp_name):
+        print(f'{exp_name} already present, skipping it...')
+        exit(1)
+    else:
+        os.mkdir(exp_name)
 
 if __name__ == '__main__':
     options = cli_options()
-    os.mkdir(options.tf)
-    experiments = search_experiments(organism=options.organism, tf=options.tf, cl=options.cl)
+    exp_type_opt=options.exp_type + '+ChIP-seq'
+    experiments = search_experiments(organism=options.organism,
+                                     exp_type=exp_type_opt,
+                                     exp=options.exp,
+                                     cl=options.cl,
+                                     genome=options.gen)
     results = bed_files(experiments=experiments)
-    jaspar = search_jaspar(tf=options.tf,tg=options.tg)
-    jaspar_to_file(jaspar,options.tf)
-    with open(f'./{options.tf}/bed_files.txt', 'a') as f:
+    createdir(options.exp)
+    if options.jd==True:
+        jaspar = search_jaspar(tf=options.exp,tg=options.tg)
+        jaspar_to_file(jaspar,options.exp)
+    with open(f'./{options.exp}/bed_files.txt', 'a') as f:
         json.dump(results,f,ensure_ascii=False, indent=4)
-    os.chdir(options.tf)
+    os.chdir(options.exp)
     urls=[]
     for i in results:
         urls.append(i['download_url'])
