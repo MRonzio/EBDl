@@ -5,7 +5,6 @@ import os
 import requests
 import argparse
 import wget
-import sys 
 from coreapi import Client
 from multiprocessing.pool import ThreadPool
 
@@ -16,12 +15,13 @@ client = Client()
 def cli_options():
     parser = argparse.ArgumentParser(description='EBDl encode bed downloader')
     parser.add_argument('-o', '--organism', dest='organism', default='Homo+sapiens', help='organism')
+    parser.add_argument('-O', '--outdir', dest='outdir', help='output folder')
     parser.add_argument('-g', '--genome', dest='gen', default='*', help='genome such as hg19, GRCh38, mm10 etc...')
     parser.add_argument('-e', '--exp-type', dest='exp_type', default='TF', help='experiment type: either "TF" or "Histone"')
-    parser.add_argument('-f', '--factor', dest='exp', default='CTCF', help='target name')
+    parser.add_argument('-f', '--factor', dest='exp', default='*', help='target name')
     parser.add_argument('-l', '--cell-line',default='K562', dest='cl', help='cell line')
-    parser.add_argument('-j', '--jaspar-download', default=False, dest='jd', action='store_true',
-                         required='Histone' not in sys.argv, help='boolean download jaspar (only for tfs)')
+    parser.add_argument('-j', '--jaspar-download', default=True, dest='jd', action='store_true',
+                        help='boolean download jaspar (ignored for histones)')
     parser.add_argument('-t', '--taxonomic-group', default='vertebrates', dest='tg', help='taxonomic group')
     parser.add_argument('-p', '--threads', default=4 , dest='tp' , help='n threadpool')
     return parser.parse_args()
@@ -53,6 +53,14 @@ def search_experiments(organism, exp_type, exp, cl, genome):
        exit(1)
 
 
+def DisplayENCODEquery(set_options):
+    print(f"Organism : {set_options.organism}")
+    print(f"Cell Line : {set_options.cl}")
+    print(f"Genome : {set_options.gen}")
+    print(f"Exp Type : {set_options.exp_type}")
+    print(f"Exp : {set_options.exp}")
+
+
 def bed_files(experiments):
     DownloadUrl_l = [] 
     for x in experiments['@graph']:
@@ -63,9 +71,9 @@ def bed_files(experiments):
         for i,item in enumerate(test['files']):
             try:
                 test['files'][i]['preferred_default']=="True"
-                print("this is default!")
+                #print("this is default!")
             except KeyError:
-                print("no default available")
+                #print("no default available")
                 continue
             if (test['files'][i]['output_type']=="optimal IDR thresholded peaks"\
             or test['files'][i]['output_type']=="IDR thresholded peaks"\
@@ -107,20 +115,25 @@ def createdir(exp_name):
 
 if __name__ == '__main__':
     options = cli_options()
+    DisplayENCODEquery(set_options=options)
     exp_type_opt=options.exp_type + '+ChIP-seq'
     experiments = search_experiments(organism=options.organism,
                                      exp_type=exp_type_opt,
                                      exp=options.exp,
                                      cl=options.cl,
-                                     genome=options.gen)
+                                     genome=options.gen)  
     results = bed_files(experiments=experiments)
-    createdir(options.exp)
-    if options.jd==True:
+    if options.exp=='*':
+        exp_opt="all"
+    else:
+        exp_opt=options.exp
+    createdir(exp_opt)
+    if options.jd==True and exp_type_opt == 'TF+ChIP-seq' and exp_opt!="all" :
         jaspar = search_jaspar(tf=options.exp,tg=options.tg)
         jaspar_to_file(jaspar,options.exp)
-    with open(f'./{options.exp}/bed_files.txt', 'a') as f:
+    with open(f'./{exp_opt}/bed_files.txt', 'a') as f:
         json.dump(results,f,ensure_ascii=False, indent=4)
-    os.chdir(options.exp)
+    os.chdir(exp_opt)
     urls=[]
     for i in results:
         urls.append(i['download_url'])
