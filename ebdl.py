@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-
+from ArgParser import dloptions
 import json
 import os
 import requests
-import argparse
 import wget
 from coreapi import Client
 from multiprocessing.pool import ThreadPool
@@ -11,21 +10,6 @@ from multiprocessing.pool import ThreadPool
 headers = {'accept': 'application/json'}
 client = Client()
 ################################################################################
-# COMMAND LINE OPTIONS
-def cli_options():
-    parser = argparse.ArgumentParser(description='EBDl encode bed downloader')
-    parser.add_argument('-o', '--organism', dest='organism', default='Homo+sapiens', help='organism')
-    parser.add_argument('-O', '--outdir', dest='outdir', help='output folder')
-    parser.add_argument('-g', '--genome', dest='gen', default='*', help='genome such as hg19, GRCh38, mm10 etc...')
-    parser.add_argument('-e', '--exp-type', dest='exp_type', default='TF', help='experiment type: either "TF" or "Histone"')
-    parser.add_argument('-f', '--factor', dest='exp', default='*', help='target name')
-    parser.add_argument('-l', '--cell-line',default='K562', dest='cl', help='cell line')
-    parser.add_argument('-j', '--jaspar-download', default=True, dest='jd', action='store_true',
-                        help='boolean download jaspar (ignored for histones)')
-    parser.add_argument('-t', '--taxonomic-group', default='vertebrates', dest='tg', help='taxonomic group')
-    parser.add_argument('-p', '--threads', default=4 , dest='tp' , help='n threadpool')
-    return parser.parse_args()
-
 
 def search_experiments(organism, exp_type, exp, cl, genome): 
     api_dict = {'organism': 'replicates.library.biosample.donor.organism.scientific_name',
@@ -114,7 +98,7 @@ def createdir(exp_name):
         os.mkdir(exp_name)
 
 if __name__ == '__main__':
-    options = cli_options()
+    options = dloptions()
     DisplayENCODEquery(set_options=options)
     exp_type_opt=options.exp_type + '+ChIP-seq'
     experiments = search_experiments(organism=options.organism,
