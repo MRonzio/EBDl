@@ -99,6 +99,7 @@ def createdir(exp_name):
 
 if __name__ == '__main__':
     options = dloptions()
+    jd_opt=bool(options.jd)
     DisplayENCODEquery(set_options=options)
     exp_type_opt=options.exp_type + '+ChIP-seq'
     experiments = search_experiments(organism=options.organism,
@@ -112,7 +113,7 @@ if __name__ == '__main__':
     else:
         exp_opt=options.exp
     createdir(exp_opt)
-    if options.jd==True and exp_type_opt == 'TF+ChIP-seq' and exp_opt!="all" :
+    if jd_opt==True and exp_type_opt == 'TF+ChIP-seq' and exp_opt!="all" :
         jaspar = search_jaspar(tf=options.exp,tg=options.tg)
         jaspar_to_file(jaspar,options.exp)
     with open(f'./{exp_opt}/bed_files.txt', 'a') as f:
