@@ -19,17 +19,19 @@ def search_experiments(organism, exp_type, exp, cl, genome):
                 'genome':'assembly'
                 }
 
-    r = requests.get(f"https://www.encodeproject.org/search/?type=Experiment"\
+    r = (f"https://www.encodeproject.org/search/?type=Experiment"\
         f"&{api_dict['organism']}={organism}"\
         f"&{api_dict['assay']}={exp_type}&status=released"\
         f"&{api_dict['exp']}={exp}"\
+        f"&{api_dict['genome']}={genome}"\
         "&biosample_ontology.classification=cell+line"\
         "&perturbed=false"\
-       # "&limit=5"\
-        f"&{api_dict['genome']}={genome}"\
-        f"&{api_dict['cell_line']}={cl}",headers=headers)
+        "&limit=all"\
+        f"&{api_dict['cell_line']}={cl}")
 
-    rj = r.json()
+    rs=requests.get(r,headers=headers)
+    rj = rs.json()
+    print(r)
     if rj['notification'] == "Success":
        return rj
     else: 
@@ -45,7 +47,7 @@ def DisplayENCODEquery(set_options):
     print(f"Exp : {set_options.exp}")
 
 
-def bed_files(experiments):
+def bed_files(experiments,genome):
     DownloadUrl_l = [] 
     for x in experiments['@graph']:
         expr = str((x['@id']))
@@ -55,17 +57,19 @@ def bed_files(experiments):
         for i,item in enumerate(test['files']):
             try:
                 test['files'][i]['preferred_default']=="True"
-                #print("this is default!")
+                #print(f"this is default! for {test['files'][i]}")
             except KeyError:
-                #print("no default available")
+                #print(f"no default available for {test['files'][i]}")
                 continue
             if (test['files'][i]['output_type']=="optimal IDR thresholded peaks"\
             or test['files'][i]['output_type']=="IDR thresholded peaks"\
             or test['files'][i]['output_type']=="pseudoreplicated peaks")\
-            and test['files'][i]['file_format']=="bed":
+            and test['files'][i]['file_format']=="bed"\
+            and test['files'][i]['assembly']==genome:
 
                 dl = item['href']
                 accession = item['accession']
+                #name = item['']
                 download_url = f'https://www.encodeproject.org{dl}'
                 url_info =  f'https://www.encodeproject.org/files/{accession}'
                 bed_file = {'url_info': url_info, 'download_url': download_url }
@@ -107,7 +111,7 @@ if __name__ == '__main__':
                                      exp=options.exp,
                                      cl=options.cl,
                                      genome=options.gen)  
-    results = bed_files(experiments=experiments)
+    results = bed_files(experiments=experiments,genome=options.gen)
     if options.exp=='*':
         exp_opt="all"
     else:
