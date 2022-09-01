@@ -50,10 +50,12 @@ def DisplayENCODEquery(set_options):
     print ("==========================\n")
 
 def choose_file(result,format,output_types,assembly):
-    if result['assembly']==assembly or assembly=="any":
+    if result['output_type'] in output_types:
         if result['file_format']==format:
-            if result['output_type'] in output_types:
-                return True
+            if result['assembly']==assembly or assembly=="any":
+                for entry in result['analyses']:
+                    if entry['status']=="released":
+                        return True
 
 def bed_files(experiments,genome):
     DownloadUrl_l = [] 
@@ -66,26 +68,28 @@ def bed_files(experiments,genome):
         for i,item in enumerate(test['files']):
             try:
                 test['files'][i]['preferred_default']=="True"
-                #print(f"this is default! for {test['files'][i]}")
             except KeyError:
-                #print(f"no default available for {test['files'][i]}")
                 continue
             if choose_file(result=test['files'][i], output_types=[
                 "optimal IDR thresholded peaks",
                 "IDR thresholded peaks",
-                "pseudoreplicated peaks"
+                "pseudoreplicated peaks",
+                "conservative IDR thresholded peaks"
                 ], format="bed", assembly=genome) == True:
                 dl = item['href']
                 accession = item['accession']
                 tf_name = item['target'].replace("/targets/","").replace("/","")
+                tf_genome = item['assembly']
                 download_url = f'https://www.encodeproject.org{dl}'
                 url_info =  f'https://www.encodeproject.org/files/{accession}'
-                bed_file = {'url_info': url_info, 'download_url': download_url }
+                bed_file = {'url_info': url_info, 'download_url': download_url,
+                            'target' : tf_name, 'cell_line': tf_cl,
+                            'genome' : tf_genome}
                 print(f'found target "{tf_name}" in "{tf_cl}"')
                 DownloadUrl_l.append(bed_file)
     return DownloadUrl_l
 
-            
+
 def search_jaspar(tf,tg):
     r = client.get(f"https://jaspar.genereg.net/api/v1/matrix/?name={tf}&format=jaspar&tax_group={tg}")
     pwms = r.split('>')[1:]
@@ -113,7 +117,8 @@ def createdir(exp_name):
 
 if __name__ == '__main__':
     options = dloptions()
-    jd_opt=bool(options.jd)
+    jd_opt=options.jd
+    skipd_opt=options.sd
     DisplayENCODEquery(set_options=options)
     exp_type_opt=options.exp_type + '+ChIP-seq'
     experiments = search_experiments(organism=options.organism,
@@ -140,5 +145,8 @@ if __name__ == '__main__':
     urls=[]
     for i in results:
         urls.append(i['download_url'])
-    p = ThreadPool(int(options.tp)) 
-    p.map(download,urls)
+    if skipd_opt==True:
+        print("As skip-download was set, the above experiements won't be downloaded.")
+    else:
+        p = ThreadPool(int(options.tp))
+        p.map(download,urls)
