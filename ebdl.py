@@ -40,17 +40,26 @@ def search_experiments(organism, exp_type, exp, cl, genome):
 
 
 def DisplayENCODEquery(set_options):
+    print("Query:")
+    print ("==========================")
     print(f"Organism : {set_options.organism}")
     print(f"Cell Line : {set_options.cl}")
     print(f"Genome : {set_options.gen}")
     print(f"Exp Type : {set_options.exp_type}")
     print(f"Exp : {set_options.exp}")
+    print ("==========================\n")
 
+def choose_file(result,format,output_types,assembly):
+    if result['assembly']==assembly or assembly=="any":
+        if result['file_format']==format:
+            if result['output_type'] in output_types:
+                return True
 
 def bed_files(experiments,genome):
     DownloadUrl_l = [] 
     for x in experiments['@graph']:
         expr = str((x['@id']))
+        tf_cl=x['biosample_summary']
         url = f"https://www.encodeproject.org{expr}"
         expr_r = requests.get(url, headers=headers)
         test = expr_r.json()
@@ -61,21 +70,22 @@ def bed_files(experiments,genome):
             except KeyError:
                 #print(f"no default available for {test['files'][i]}")
                 continue
-            if (test['files'][i]['output_type']=="optimal IDR thresholded peaks"\
-            or test['files'][i]['output_type']=="IDR thresholded peaks"\
-            or test['files'][i]['output_type']=="pseudoreplicated peaks")\
-            and test['files'][i]['file_format']=="bed"\
-            and test['files'][i]['assembly']==genome:
-
+            if choose_file(result=test['files'][i], output_types=[
+                "optimal IDR thresholded peaks",
+                "IDR thresholded peaks",
+                "pseudoreplicated peaks"
+                ], format="bed", assembly=genome) == True:
                 dl = item['href']
                 accession = item['accession']
-                #name = item['']
+                tf_name = item['target'].replace("/targets/","").replace("/","")
                 download_url = f'https://www.encodeproject.org{dl}'
                 url_info =  f'https://www.encodeproject.org/files/{accession}'
                 bed_file = {'url_info': url_info, 'download_url': download_url }
+                print(f'found target "{tf_name}" in "{tf_cl}"')
                 DownloadUrl_l.append(bed_file)
     return DownloadUrl_l
 
+            
 def search_jaspar(tf,tg):
     r = client.get(f"https://jaspar.genereg.net/api/v1/matrix/?name={tf}&format=jaspar&tax_group={tg}")
     pwms = r.split('>')[1:]
@@ -110,8 +120,12 @@ if __name__ == '__main__':
                                      exp_type=exp_type_opt,
                                      exp=options.exp,
                                      cl=options.cl,
-                                     genome=options.gen)  
-    results = bed_files(experiments=experiments,genome=options.gen)
+                                     genome=options.gen)
+    if options.gen=="*":
+        gen_opt="any"
+    else:
+        gen_opt=options.gen
+    results = bed_files(experiments=experiments,genome=gen_opt)
     if options.exp=='*':
         exp_opt="all"
     else:
