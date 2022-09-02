@@ -11,6 +11,8 @@ def dloptions():
     parser.add_argument('-e', '--exp-type', dest='exp_type', required=True, help='experiment type: either "TF" or "Histone"')
     parser.add_argument('-f', '--factor', dest='exp', default='*', help='target name')
     parser.add_argument('-l', '--cell-line',default='*', dest='cl', help='cell line, default all the ones available')
+    parser.add_argument('-k', '--keep-archived', dest='ka', action='store_true',
+                        help='download also archived analyses (but not archived files)')
     parser.add_argument('-j', '--jaspar-download', dest='jd', action='store_true',
                         help='download jaspar matrices(ignored for histones)')
     parser.add_argument('-t', '--taxonomic-group', default='vertebrates', dest='tg', help='taxonomic group')

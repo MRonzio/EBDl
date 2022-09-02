@@ -47,17 +47,19 @@ def DisplayENCODEquery(set_options):
     print(f"Genome : {set_options.gen}")
     print(f"Exp Type : {set_options.exp_type}")
     print(f"Exp : {set_options.exp}")
+    print(f"Keep archived analyses : {set_options.ka}")
     print ("==========================\n")
 
-def choose_file(result,format,output_types,assembly):
+def choose_file(result,format,output_types,assembly,file_status,an_status,keep_arch=False):
     if result['output_type'] in output_types:
-        if result['file_format']==format:
-            if result['assembly']==assembly or assembly=="any":
-                for entry in result['analyses']:
-                    if entry['status']=="released":
-                        return True
+        if result['status']==file_status:
+            if result['file_format']==format:
+                if result['assembly']==assembly or assembly=="any":
+                    for entry in result['analyses']:
+                        if entry['status']==an_status or keep_arch==True:
+                            return True
 
-def bed_files(experiments,genome):
+def bed_files(experiments,genome,keep_archived):
     DownloadUrl_l = [] 
     for x in experiments['@graph']:
         expr = str((x['@id']))
@@ -75,7 +77,9 @@ def bed_files(experiments,genome):
                 "IDR thresholded peaks",
                 "pseudoreplicated peaks",
                 "conservative IDR thresholded peaks"
-                ], format="bed", assembly=genome) == True:
+                ], format="bed", assembly=genome,
+                file_status="released",an_status="released",
+                keep_arch=keep_archived) == True:
                 dl = item['href']
                 accession = item['accession']
                 tf_name = item['target'].replace("/targets/","").replace("/","")
@@ -84,7 +88,7 @@ def bed_files(experiments,genome):
                 url_info =  f'https://www.encodeproject.org/files/{accession}'
                 bed_file = {'url_info': url_info, 'download_url': download_url,
                             'target' : tf_name, 'cell_line': tf_cl,
-                            'genome' : tf_genome}
+                            'genome' : tf_genome, 'experiment_code': expr}
                 print(f'found target "{tf_name}" in "{tf_cl}"')
                 DownloadUrl_l.append(bed_file)
     return DownloadUrl_l
@@ -119,6 +123,7 @@ if __name__ == '__main__':
     options = dloptions()
     jd_opt=options.jd
     skipd_opt=options.sd
+    keep_arch_opt=options.ka
     DisplayENCODEquery(set_options=options)
     exp_type_opt=options.exp_type + '+ChIP-seq'
     experiments = search_experiments(organism=options.organism,
@@ -130,7 +135,7 @@ if __name__ == '__main__':
         gen_opt="any"
     else:
         gen_opt=options.gen
-    results = bed_files(experiments=experiments,genome=gen_opt)
+    results = bed_files(experiments=experiments,genome=gen_opt,keep_archived=keep_arch_opt)
     if options.exp=='*':
         exp_opt="all"
     else:
