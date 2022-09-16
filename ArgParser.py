@@ -15,6 +15,8 @@ def dloptions():
                         help='download also archived analyses (but not archived files)')
     parser.add_argument('-j', '--jaspar-download', dest='jd', action='store_true',
                         help='download jaspar matrices(ignored for histones)')
+    parser.add_argument('-c', '--beyond-cell-lines', dest='beyond_cell_line', action='store_true',
+                        help='include primary cells, whole organisms etc.')                        
     parser.add_argument('-t', '--taxonomic-group', default='vertebrates', dest='tg', help='taxonomic group')
     parser.add_argument('-p', '--threads', default=4 , dest='tp' , help='n threadpool')
     parser.add_argument('-s', '--skip-download', dest='sd', action='store_true',

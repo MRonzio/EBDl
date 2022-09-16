@@ -11,12 +11,13 @@ headers = {'accept': 'application/json'}
 client = Client()
 ################################################################################
 
-def search_experiments(organism, exp_type, exp, cl, genome): 
+def search_experiments(organism, exp_type, exp, cl, genome,biosample): 
     api_dict = {'organism': 'replicates.library.biosample.donor.organism.scientific_name',
                 'assay' : 'assay_title',
                 'exp': 'target.label',
                 'cell_line':'biosample_ontology.term_name',
-                'genome':'assembly'
+                'genome':'assembly',
+                'biosample':'biosample_ontology.classification'
                 }
 
     r = (f"https://www.encodeproject.org/search/?type=Experiment"\
@@ -24,7 +25,7 @@ def search_experiments(organism, exp_type, exp, cl, genome):
         f"&{api_dict['assay']}={exp_type}&status=released"\
         f"&{api_dict['exp']}={exp}"\
         f"&{api_dict['genome']}={genome}"\
-        "&biosample_ontology.classification=cell+line"\
+        f"&{api_dict['biosample']}={biosample}"\
         "&perturbed=false"\
         "&limit=all"\
         f"&{api_dict['cell_line']}={cl}")
@@ -41,14 +42,14 @@ def search_experiments(organism, exp_type, exp, cl, genome):
 
 def DisplayENCODEquery(set_options):
     print("Query:")
-    print ("==========================")
+    print ("=====================================")
     print(f"Organism : {set_options.organism}")
     print(f"Cell Line : {set_options.cl}")
     print(f"Genome : {set_options.gen}")
     print(f"Exp Type : {set_options.exp_type}")
     print(f"Exp : {set_options.exp}")
     print(f"Keep archived analyses : {set_options.ka}")
-    print ("==========================\n")
+    print ("===================================\n")
 
 def choose_file(result,format,output_types,assembly,file_status,an_status,keep_arch=False):
     if result['output_type'] in output_types:
@@ -124,20 +125,27 @@ if __name__ == '__main__':
     jd_opt=options.jd
     skipd_opt=options.sd
     keep_arch_opt=options.ka
+    if options.beyond_cell_line==True:
+        biosample_opt='*'
+        print('Extend to other cell lines is set True, so cell line is automatically set as all (i.e. *)')
+        options.cl='*'
+    else:
+        biosample_opt='cell+line'
     DisplayENCODEquery(set_options=options)
-    exp_type_opt=options.exp_type + '+ChIP-seq'
+    exp_type_opt=options.exp_type + '+ChIP-seq'        
     experiments = search_experiments(organism=options.organism,
                                      exp_type=exp_type_opt,
                                      exp=options.exp,
                                      cl=options.cl,
-                                     genome=options.gen)
-    if options.gen=="*":
-        gen_opt="any"
+                                     genome=options.gen,
+                                     biosample=biosample_opt)
+    if options.gen=='*':
+        gen_opt='any'
     else:
         gen_opt=options.gen
     results = bed_files(experiments=experiments,genome=gen_opt,keep_archived=keep_arch_opt)
     if options.exp=='*':
-        exp_opt="all"
+        exp_opt='all'
     else:
         exp_opt=options.exp
     createdir(exp_opt)
