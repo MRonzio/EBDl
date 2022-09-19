@@ -42,4 +42,4 @@ wget
   - provide a more meaningful metadata ---- DONE
   - improve speed
   - fix output_dir
-  - extend to whole organism (i.e. not only cell lines) experiments.
+  - extend to whole organism (i.e. not only cell lines) experiments. ----- DONE 
