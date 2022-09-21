@@ -113,12 +113,12 @@ def jaspar_to_file(jaspar,dir):
 def download(url):
     wget.download(url)
 
-def createdir(exp_name):
-    if os.path.exists(exp_name):
-        print(f'{exp_name} already present, skipping it...')
+def createdir(outdirname):
+    if os.path.exists(outdirname):
+        print(f'{outdirname} already present, skipping it...')
         exit(1)
     else:
-        os.mkdir(exp_name)
+        os.mkdir(outdirname)
 
 if __name__ == '__main__':
     options = dloptions()
@@ -148,13 +148,17 @@ if __name__ == '__main__':
         exp_opt='all'
     else:
         exp_opt=options.exp
-    createdir(exp_opt)
-    if jd_opt==True and exp_type_opt == 'TF+ChIP-seq' and exp_opt!="all" :
+    if options.outdir is not None:
+        outputdir=options.outdir
+    else:
+        outputdir=exp_opt
+    createdir(outdirname=outputdir)
+    if jd_opt==True and exp_type_opt == 'TF+ChIP-seq' and options.exp!="*" :
         jaspar = search_jaspar(tf=options.exp,tg=options.tg)
         jaspar_to_file(jaspar,options.exp)
-    with open(f'./{exp_opt}/bed_files.txt', 'a') as f:
+    with open(f'./{outputdir}/bed_files.txt', 'a') as f:
         json.dump(results,f,ensure_ascii=False, indent=4)
-    os.chdir(exp_opt)
+    os.chdir(outputdir)
     urls=[]
     for i in results:
         urls.append(i['download_url'])

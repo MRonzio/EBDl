@@ -41,5 +41,5 @@ wget
   - deal with multiple experiments for the same factor in different cell lines/organisms/genome. ---- DONE
   - provide a more meaningful metadata ---- DONE
   - improve speed
-  - fix output_dir
+  - fix output_dir ---- DONE
   - extend to whole organism (i.e. not only cell lines) experiments. ----- DONE 
