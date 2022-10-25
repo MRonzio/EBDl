@@ -155,7 +155,7 @@ if __name__ == '__main__':
     createdir(outdirname=outputdir)
     if jd_opt==True and exp_type_opt == 'TF+ChIP-seq' and options.exp!="*" :
         jaspar = search_jaspar(tf=options.exp,tg=options.tg)
-        jaspar_to_file(jaspar,options.exp)
+        jaspar_to_file(jaspar,options.outdir)
     with open(f'./{outputdir}/bed_files.txt', 'a') as f:
         json.dump(results,f,ensure_ascii=False, indent=4)
     os.chdir(outputdir)
