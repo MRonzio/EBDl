@@ -8,7 +8,7 @@ def dloptions():
     parser.add_argument('-O', '--outdir', dest='outdir', help='output folder')
     parser.add_argument('-g', '--genome', dest='gen', default='*', help='genome, e.g. hg19, GRCh38, mm10 etc...,'
                        'default all the ones available')
-    parser.add_argument('-e', '--exp-type', dest='exp_type', required=True, help='experiment type: either "TF" or "Histone"')
+    parser.add_argument('-e', '--exp-type', dest='assay', required=True, help='experiment type: either "TF" or "Histone"')
     parser.add_argument('-f', '--factor', dest='exp', default='*', help='target name')
     parser.add_argument('-l', '--cell-line',default='*', dest='cl', help='cell line, default all the ones available')
     parser.add_argument('-k', '--keep-archived', dest='ka', action='store_true',
