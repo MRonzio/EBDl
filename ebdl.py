@@ -9,69 +9,49 @@ from multiprocessing.pool import ThreadPool
 
 headers = {'accept': 'application/json'}
 client = Client()
-    ################################################################################
+################################################################################
 
 def search_experiments(options): 
-    #    api_dict = {'organism': 'replicates.library.biosample.donor.organism.scientific_name',
-    #                'assay' : 'assay_title',
-    #                'exp': 'target.label',
-    #                'cell_line':'biosample_ontology.term_name',
-    #                'genome':'assembly',
-    #                'biosample':'biosample_ontology.classification'
-    #                }
-    # organism
-    # outdir
-    # gen
-    # assay
-    # exp
-    # cl
-    # ka
-    # jd
-    # beyond_cell_line
-    # tg
-# tp
-# sd
-        api_dict ={}
-        for key in vars(options):
-            print (key) 
-            match key:
-                case "organism":
-                     if options.organism is not None:
-                         api_dict["replicates.library.biosample.donor.organism.scientific_name"]=options.organism
-                case "assay":
-                     if options.organism is not None:
-                         api_dict["assay_title"]=options.assay  
-                case "exp":
-                     if options.exp is not None:
-                         api_dict["target.label"]=options.exp 
-                case "cl":
-                     if options.exp is not None:
-                         api_dict["biosample_ontology.term_name"]=options.cl
-                case "assembly":
-                     if options.exp is not None:
-                         api_dict["target.label"]=options.gen
-                case "tg":
-                     if options.exp is not None:
-                         api_dict["biosample_ontology.classification"]=options.exp 
-                case _:
-                    pass
-        # add default
-        api_dict['perturbed']='false'
-        api_dict['limit']='all'
-        api_dict['type']='Experiment'
-        api_dict['status']='released'
-    
-        
-        base_url="https://www.encodeproject.org/search/"
+    api_dict ={}
+    for key in vars(options):
+        match key:
+            case "organism":
+                if options.organism is not None:
+                    api_dict["replicates.library.biosample.donor.organism.scientific_name"]=options.organism
+            case "assay":
+                if options.assay == 'TF':
+                    api_dict["assay_title"]= f"{options.assay} ChIP-seq"
+                else:
+                    api_dict["assay_title"]= {options.assay}
 
-        rs=requests.get(base_url,api_dict)
-        rj = rs.json()
-        print(rj)
-        if rj['notification'] == "Success":
-           return rj
-        else: 
-           print(rj['notification'] +": FATAL error")
-           exit(1)
+            case "exp":
+                if options.exp is not None:
+                    api_dict["target.label"]=options.exp
+            case "cl":
+                if options.exp is not None:
+                    api_dict["biosample_ontology.term_name"]=options.cl
+                    api_dict["biosample_ontology.classification"]="cell line" 
+            case "assembly":
+                if options.exp is not None:
+                    api_dict["target.label"]=options.gen
+            case _:
+                pass
+# add default
+    api_dict['perturbed']='false'
+    api_dict['limit']='all'
+    api_dict['type']='Experiment'
+    api_dict['status']='released'
+
+    base_url="https://www.encodeproject.org/search/"
+
+    rs=requests.get(base_url,params=api_dict,headers=headers)
+    print(rs.headers)
+    rj = rs.json()
+    if rj['notification'] == "Success":
+        return rj
+    else: 
+        print(rj['notification'] +": FATAL error")
+        exit(1)
 
 
 def DisplayENCODEquery(set_options):
@@ -182,7 +162,7 @@ if __name__ == '__main__':
     else:
         outputdir=exp_opt
     createdir(outdirname=outputdir)
-    if jd_opt==True and exp_type_opt == 'TF+ChIP-seq' and options.exp!="*" :
+    if jd_opt==True and exp_type_opt == 'TF ChIP-seq' and options.exp!="*" :
         jaspar = search_jaspar(tf=options.exp,tg=options.tg)
         jaspar_to_file(jaspar,options.outdir)
     with open(f'./{outputdir}/bed_files.txt', 'a') as f:
