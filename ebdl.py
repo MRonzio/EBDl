@@ -19,20 +19,20 @@ def search_experiments(options):
                 if options.organism is not None:
                     api_dict["replicates.library.biosample.donor.organism.scientific_name"]=options.organism
             case "assay":
-                if options.assay == 'TF':
+                if options.assay in ['TF','Histone'] :
                     api_dict["assay_title"]= f"{options.assay} ChIP-seq"
                 else:
-                    api_dict["assay_title"]= {options.assay}
-
-            case "exp":
-                if options.exp is not None:
-                    api_dict["target.label"]=options.exp
+                    print(f"TF or Histone assay available. You put {options.assay}, exiting..")
+                    exit(1)
+            case "trg":
+                if options.trg is not None:
+                    api_dict["target.label"]=options.trg
             case "cl":
-                if options.exp is not None:
+                if options.trg is not None:
                     api_dict["biosample_ontology.term_name"]=options.cl
                     api_dict["biosample_ontology.classification"]="cell line" 
             case "assembly":
-                if options.exp is not None:
+                if options.trg is not None:
                     api_dict["target.label"]=options.gen
             case _:
                 pass
@@ -45,6 +45,7 @@ def search_experiments(options):
     base_url="https://www.encodeproject.org/search/"
 
     rs=requests.get(base_url,params=api_dict,headers=headers)
+    print(api_dict)
     print(rs.headers)
     rj = rs.json()
     if rj['notification'] == "Success":
@@ -54,15 +55,15 @@ def search_experiments(options):
         exit(1)
 
 
-def DisplayENCODEquery(set_options):
+def DisplayENCODEquery(options):
     print("Query:")
     print ("=====================================")
-    print(f"Organism : {set_options.organism}")
-    print(f"Cell Line : {set_options.cl}")
-    print(f"Genome : {set_options.gen}")
-    #print(f"Exp Type : {set_options.exp_type}")
-    print(f"Exp : {set_options.exp}")
-    print(f"Keep archived analyses : {set_options.ka}")
+    print(f"Organism : {options.organism}")
+    print(f"Cell Line : {options.cl}")
+    print(f"Genome : {options.gen}")
+    print(f"Exp Type/Assay : {options.assay}")
+    print(f"Target : {options.trg}")
+    print(f"Keep archived analyses : {options.ka}")
     print ("===================================\n")
 
 def choose_file(result,format,output_types,assembly,file_status,an_status,keep_arch=False):
@@ -136,7 +137,6 @@ def createdir(outdirname):
 
 if __name__ == '__main__':
     options = dloptions()
-    jd_opt=options.jd
     skipd_opt=options.sd
     keep_arch_opt=options.ka
     if options.beyond_cell_line==True:
@@ -145,25 +145,23 @@ if __name__ == '__main__':
         options.cl='*'
     else:
         biosample_opt='cell+line'
-    DisplayENCODEquery(set_options=options)
-    exp_type_opt=options.exp + '+ChIP-seq'        
+    DisplayENCODEquery(options)
     experiments = search_experiments(options)
     if options.gen=='*':
         gen_opt='any'
     else:
         gen_opt=options.gen
     results = bed_files(experiments=experiments,genome=gen_opt,keep_archived=keep_arch_opt)
-    if options.exp=='*':
-        exp_opt='all'
-    else:
-        exp_opt=options.exp
     if options.outdir is not None:
         outputdir=options.outdir
     else:
-        outputdir=exp_opt
+        if options.trg=='*':
+            outputdir="AllTargets"
+        else:
+            outputdir=options.trg
     createdir(outdirname=outputdir)
-    if jd_opt==True and exp_type_opt == 'TF ChIP-seq' and options.exp!="*" :
-        jaspar = search_jaspar(tf=options.exp,tg=options.tg)
+    if options.jd==True and options.assay == 'TF' and options.trg!="*" :
+        jaspar = search_jaspar(tf=options.trg,tg=options.tg)
         jaspar_to_file(jaspar,options.outdir)
     with open(f'./{outputdir}/bed_files.txt', 'a') as f:
         json.dump(results,f,ensure_ascii=False, indent=4)
